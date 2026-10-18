@@ -1440,7 +1440,13 @@ if(STRATA_ENABLE_CUDA AND STRATA_NATIVE_EXPERTS)
   endforeach()
   add_subdirectory(${STRATA_GGML_DIR} ${CMAKE_BINARY_DIR}/llama.cpp EXCLUDE_FROM_ALL)
   find_package(Threads REQUIRED)
-  add_executable(unbiased-strata frontend/main.cpp frontend/engine_entry.cpp)
+  # the commit and the time of the build, written again on every build
+  add_custom_target(strata_build_info
+    COMMAND ${CMAKE_COMMAND} -DSRC=${CMAKE_SOURCE_DIR} -DOUT=${CMAKE_BINARY_DIR}/build_info.cpp
+            -P ${CMAKE_SOURCE_DIR}/cmake/build_info.cmake
+    BYPRODUCTS ${CMAKE_BINARY_DIR}/build_info.cpp)
+  add_executable(unbiased-strata frontend/main.cpp frontend/engine_entry.cpp ${CMAKE_BINARY_DIR}/build_info.cpp)
+  add_dependencies(unbiased-strata strata_build_info)
   target_include_directories(unbiased-strata PRIVATE ${_strata_gpu_include_directories} ${STRATA_GGML_DIR}/vendor)
   target_link_libraries(unbiased-strata PRIVATE strata_engine strata_prefill strata_spec ${_strata_gpu_runtime_target}
                         llama-common llama mtmd cpp-httplib Threads::Threads)

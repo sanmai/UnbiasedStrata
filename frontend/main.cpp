@@ -36,6 +36,8 @@
 #include <unistd.h>
 
 int strata_engine_main(int argc, char** argv);
+extern const char* const strata_build_commit;   // build_info.cpp, written by cmake/build_info.cmake
+extern const char* const strata_build_time;
 
 namespace {
 
@@ -717,6 +719,7 @@ int main(int argc, char** argv) {
         }
     }
 
+    std::fprintf(stderr, "unbiased-strata: build %s, %s\n", strata_build_commit, strata_build_time);
     std::fprintf(stderr, "unbiased-strata: loading the model (this takes a few minutes)...\n");
     long long engine_ctx = 0;
     if (!srv.engine.wait_ready(err, &engine_ctx)) {
