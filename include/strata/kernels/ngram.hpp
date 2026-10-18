@@ -240,6 +240,9 @@ bool ple_prefetch_enabled();
 // P2.S4 asks for `madvise(MADV_RANDOM)` on the mapping, and on Linux that is exactly right: a token gathers
 // 16 rows scattered over 28.8 GB, so read-ahead is pure waste and would evict useful pages.
 //
+// UnbiasedStrata: on Linux `PleTable::open` now gives the advice for the table's part of a kept mapping (`--ple-io
+// mmap`). The rest of this note is about Windows.
+//
 // THERE IS NO LINUX, SO THERE IS NO MADV_RANDOM HERE.  Windows has no equivalent of the advice - the closest
 // is `FILE_FLAG_RANDOM_ACCESS` at CreateFile time, which suppresses the cache-manager's read-ahead for the
 // whole handle, and `PrefetchVirtualMemory` for the positive case.  `GgufFile` opens with neither, so this

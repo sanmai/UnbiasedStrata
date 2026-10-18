@@ -340,6 +340,14 @@ bool PleTable::open(const std::string& gguf_path, std::string& err, const PleIoO
         impl_->locked = mlock(mem, (size_t) need) == 0;   // extra: the memory is already resident either way
 #endif
     }
+#if !defined(_WIN32)
+    if (impl_->file != nullptr) {
+        // UnbiasedStrata: a token reads 16 rows scattered over the whole table, so the default read-ahead of a fault
+        // only reads pages that no lookup needs and evicts pages that one does
+        const uintptr_t a0 = (uintptr_t) impl_->data & ~(uintptr_t) 4095;
+        (void) madvise((void*) a0, (size_t) ((uintptr_t) impl_->data + need - a0), MADV_RANDOM);
+    }
+#endif
     impl_->mode = io.mode;
     return true;
 }
