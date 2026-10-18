@@ -62,6 +62,7 @@ struct Options {
     int threads = 0;                    // CPU expert workers; 0 = the engine's default (every physical core)
     long long vram_cap_mib = 0;         // --vram-cap: the engine limits itself to a smaller card's VRAM
     double ram_cap_gib = 0.0;           // --ram-cap: bounds the engine's RAM expert tier and pinned arena
+    double temperature = 0.0;           // the default for requests without the field; 0 is greedy
     std::vector<std::string> extra;     // after `--`: passed to the engine as they are
 };
 
@@ -79,7 +80,8 @@ void usage() {
         "  --host ADDR     address to listen on (default 127.0.0.1)\n"
         "  --port N        port to listen on (default 8080)\n"
         "  --vram-cap MIB  emulate a smaller card: the engine uses at most MIB of VRAM (a 1080 Ti as 6 GB: 5722)\n"
-        "  --ram-cap GIB   bound the engine's RAM expert tier and pinned arena to GIB\n\n"
+        "  --ram-cap GIB   bound the engine's RAM expert tier and pinned arena to GIB\n"
+        "  --temperature F the temperature for requests that do not set it (default 0: greedy)\n\n"
         "Serves POST /v1/chat/completions (OpenAI style, with streaming), GET /v1/models and GET /health (with the\n"
         "engine's expert tiers and per-token counters: VRAM slots, RAM copies, mapped experts, hits, warm hints,\n"
         "major page faults).\n");
@@ -318,10 +320,10 @@ struct Server {
         p.max_new = max_new;
         p.stream = body.value("stream", false);
 
-        // sampling: greedy unless the request sets a temperature above zero
+        // sampling: greedy unless the request or --temperature sets a temperature above zero
         std::string keys;
         const double temperature = body.contains("temperature") && body.at("temperature").is_number()
-                                       ? body.at("temperature").get<double>() : 0.0;
+                                       ? body.at("temperature").get<double>() : opt.temperature;
         if (temperature > 0.0) {
             const double top_p = body.contains("top_p") && body.at("top_p").is_number() ? body.at("top_p").get<double>() : 0.95;
             long long top_k = body.contains("top_k") && body.at("top_k").is_number() ? body.at("top_k").get<long long>() : 20;
@@ -626,6 +628,7 @@ bool parse_args(int argc, char** argv, Options& o) {
         else if (a == "--threads") o.threads = std::atoi(next("--threads").c_str());
         else if (a == "--vram-cap") o.vram_cap_mib = std::atoll(next("--vram-cap").c_str());
         else if (a == "--ram-cap") o.ram_cap_gib = std::atof(next("--ram-cap").c_str());
+        else if (a == "--temperature") o.temperature = std::atof(next("--temperature").c_str());
         else if (a == "--") {
             for (++i; i < argc; ++i) {
                 const std::string e = argv[i];
